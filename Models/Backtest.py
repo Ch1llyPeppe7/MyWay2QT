@@ -13,18 +13,21 @@ class Backtest:
         self.name=stock_data.columns  
         self.history = []  # 记录每个时间步的账户状态
 
+
     def set_strategy(self,BS,SS):
         self.BS=BS
         self.SS=SS
 
     def setlog(self):
-                # 确保 log 目录存在
+        # 每次调用前清除之前的日志处理器
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+
         if not os.path.exists('log'):
             os.makedirs('log')
 
         # 获取当前日期并格式化为文件名
         log_filename = f'log/backtest_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log'
-
 
         # 配置日志
         logging.basicConfig(

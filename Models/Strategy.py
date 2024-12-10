@@ -57,14 +57,14 @@ class Strategy:
         plt.title(f"Portfolio Value - Max Drawdown: {max_drawdown:.2%}")
         plt.show()
 
-        #self.backup_strategy('MyStrategy.py')
+        self.backup_strategy('Models/Strategy.py')
             
 class MyStrategy(Strategy):
     def __init__(self, dflist, startday, sig, initial_money=100000):
         super().__init__(dflist, startday, initial_money)
         self.backtest.set_strategy(self.buy_strategy, self.sell_strategy)  # Set strategy methods
         self.sig = sig
-        logging.info(f"Strategy initialized with starting money: {initial_money}")
+
 
     def Refresh_Position(self, Clprc):
         # logging.debug(f"Refreshing positions for day {self.backtest.day}")
@@ -72,7 +72,6 @@ class MyStrategy(Strategy):
         idxs, Yield = SelectStks(Clprc.iloc[:-1])
     
         if idxs.shape[0] == 0:
-            logging.info("No stocks selected for position adjustment.")
             return None, None
         
         if self.backtest.day == 0:
@@ -101,7 +100,6 @@ class MyStrategy(Strategy):
         if self.backtest.day % 30 == 0:
             changes, position_idxs = self.Refresh_Position(Clprc)
             if changes is None:
-                logging.info("No changes in buy positions.")
                 return buy_signals
             for idx, qty in zip(position_idxs, changes):
                 if qty > 0:
@@ -114,7 +112,6 @@ class MyStrategy(Strategy):
         if self.backtest.day % 30 == 0:
             changes, position_idxs = self.Refresh_Position(Clprc)
             if changes is None:
-                logging.info("No changes in sell positions.")
                 return sell_signals
             for idx, qty in zip(position_idxs, changes):
                 if qty < 0:
@@ -131,7 +128,6 @@ class MyStrategy(Strategy):
         return sell_signals
 
     def run(self):
-        logging.info(f"Backtest started from {self.backtest.startday}")
         super().run()  # Call the parent class run method
 
     def show(self):

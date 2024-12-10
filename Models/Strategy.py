@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import logging
 import os
 import shutil
-from datetime import datetime
+import time
 from .Backtest import *
 from .Utils import *
 import torch
@@ -16,9 +16,12 @@ if not os.path.exists(BACKUP_DIR):
     os.makedirs(BACKUP_DIR)
 
 class Strategy:
-    def __init__(self,dflist,startday,initial_money=100000):
-        self.backtest=Backtest(dflist[0],dflist[1],startday
+    def __init__(self,datadict,startday,initial_money=100000):
+        start_time=time.time()
+        self.backtest=Backtest(datadict,startday
                               ,initial_money)
+        self.backup=datadict['backup']
+        print(f"Strategy initialized in {time.time()-start_time} seconds")
     def buy_strategy():
         raise NotImplementedError("Subclasses should implement this method.")
     def sell_strategy():
@@ -56,12 +59,13 @@ class Strategy:
         # Show maximum drawdown on the plot
         plt.title(f"Portfolio Value - Max Drawdown: {max_drawdown:.2%}")
         plt.show()
-
-        self.backup_strategy('Models/Strategy.py')
+        if self.backup:
+            self.backup_strategy('Models/Strategy.py')
             
 class MyStrategy(Strategy):
-    def __init__(self, dflist, startday, sig, initial_money=100000):
-        super().__init__(dflist, startday, initial_money)
+    def __init__(self, dfdict, startday, sig,backup,initial_money=100000):
+        self.backup=backup
+        super().__init__(dfdict, startday, initial_money)
         self.backtest.set_strategy(self.buy_strategy, self.sell_strategy)  # Set strategy methods
         self.sig = sig
 
@@ -104,7 +108,6 @@ class MyStrategy(Strategy):
             for idx, qty in zip(position_idxs, changes):
                 if qty > 0:
                     buy_signals[idx] = qty
-                    #logging.info(f"Buy signal: Stock {self.backtest.name[idx]}, Quantity: {qty}")
         return buy_signals
 
     def sell_strategy(self, Clprc):
@@ -116,7 +119,7 @@ class MyStrategy(Strategy):
             for idx, qty in zip(position_idxs, changes):
                 if qty < 0:
                     sell_signals[idx] = qty
-                    #logging.info(f"Sell signal: Stock {self.backtest.name[idx]}, Quantity: {qty}")
+                
         else:
             now_position = self.backtest.positions
             now_idxs = now_position.index[now_position > 0]
@@ -124,13 +127,12 @@ class MyStrategy(Strategy):
                 if prices > Clprc.iloc[:, idx].mean() + Clprc.iloc[:, idx].std() or \
                    prices < Clprc.iloc[:, idx].mean() - Clprc.iloc[:, idx].std() / 2:
                     sell_signals[idx] = -now_position[idx]
-                    #logging.info(f"Sell signal (based on price deviation): Stock {idx}, Quantity: {-now_position[idx]}")
         return sell_signals
 
     def run(self):
-        super().run()  # Call the parent class run method
+        super().run()  
 
     def show(self):
-        super().show()  # Call the parent class show method
+        super().show()  
         logging.info(f"Backtest completed. Portfolio final value: {self.backtest.history[-1]['portfolio_value']}")
         

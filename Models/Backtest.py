@@ -2,15 +2,17 @@ import pandas as pd
 import logging
 import os
 from datetime import datetime
-class Backtest:
-    def __init__(self,OpenPrc,stock_data,StartDay,initial_cash=100000):
-        self.Oprc=OpenPrc
+import time
+from .Dataset import *
+class Backtest(Stocks):
+    def __init__(self,datadict,StartDay,initial_cash=100000):
+        super().__init__(datadict)
+
         self.startday=StartDay
-        self.stock_data = stock_data
         self.initial_cash = initial_cash
         self.cash = initial_cash
-        self.positions = pd.Series(0, index=range(len(stock_data.columns)))
-        self.name=stock_data.columns  
+        self.positions = pd.Series(0, index=range(len(self.Clprc.columns)))
+        self.name=self.Clprc.columns  
         self.history = []  # 记录每个时间步的账户状态
 
 
@@ -19,7 +21,6 @@ class Backtest:
         self.SS=SS
 
     def setlog(self):
-        # 每次调用前清除之前的日志处理器
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 
@@ -50,8 +51,8 @@ class Backtest:
         self.setlog()
         for self.date, row in self.Oprc.loc[self.startday:].iterrows():
             self.prices=row.to_numpy()
-            sell=self._sell(self.SS(self.stock_data.loc[:self.date]))
-            buy=self._buy(self.BS(self.stock_data.loc[:self.date]))
+            sell=self._sell(self.SS(self.Clprc.loc[:self.date]))
+            buy=self._buy(self.BS(self.Clprc.loc[:self.date]))
             self.history.append({
                 'date': self.date,
                 'cash': self.cash,
@@ -61,7 +62,8 @@ class Backtest:
             })
             logging.info(f"Day {self.day}{'Changed' if self.history[-1]['changed'] else ''} Portfolio_value: {self.history[-1]['portfolio_value']}")
             self.day+=1
-    
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
     def _buy(self, buy_signals):
         for idx, qty in buy_signals.items():
             if qty*self.prices[idx]<self.cash:
